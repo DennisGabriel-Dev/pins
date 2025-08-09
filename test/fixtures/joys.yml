@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  body: MyString
+  emoji: MyString
+  lat: 9.99
+  lng: 9.99
+  likes_count: 1
+  approved: false
+
+two:
+  body: MyString
+  emoji: MyString
+  lat: 9.99
+  lng: 9.99
+  likes_count: 1
+  approved: false
