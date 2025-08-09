@@ -1,14 +1,10 @@
 <%= turbo_stream_from "joys" %>
 
 <div class="container" style="display:flex; gap: 1rem; align-items: flex-start;">
-  <div id="map" style="flex: 1; min-height: 420px; background: #f6f7f9; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:#667;">
-    <div>
-      <div style="font-size: 2rem;">🗺️</div>
-      <div style="margin-top: .25rem;">Mapa vai aqui (Leaflet na próxima etapa)</div>
-    </div>
+  <div id="map" data-controller="map" data-map-joys-url-value="/joys.json" style="flex: 1; height: 90vh; min-height: 420px; background: #f6f7f9; border-radius: 12px; overflow: hidden;">
   </div>
 
-  <div style="flex: 1; min-width: 360px;">
+  <div style="flex: 1; min-width: 360px; max-height: 100vh; overflow: auto;">
     <h2 style="margin: 0 0 .5rem 0;">Pequenas Alegrias</h2>
 
     <%= form_with model: @joy, url: joys_path, data: { turbo: true }, style: "margin-bottom: 1rem; display:grid; gap:.5rem;" do |f| %>
