@@ -1,0 +1,62 @@
+<%= turbo_stream_from "joys" %>
+
+<div class="container" style="display:flex; gap: 1rem; align-items: flex-start;">
+  <div id="map" style="flex: 1; min-height: 420px; background: #f6f7f9; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:#667;">
+    <div>
+      <div style="font-size: 2rem;">🗺️</div>
+      <div style="margin-top: .25rem;">Mapa vai aqui (Leaflet na próxima etapa)</div>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-width: 360px;">
+    <h2 style="margin: 0 0 .5rem 0;">Pequenas Alegrias</h2>
+
+    <%= form_with model: @joy, url: joys_path, data: { turbo: true }, style: "margin-bottom: 1rem; display:grid; gap:.5rem;" do |f| %>
+      <div>
+        <%= f.label :emoji, "Emoji" %>
+        <%= f.text_field :emoji, required: true, placeholder: "😊", maxlength: 4 %>
+      </div>
+      <div>
+        <%= f.label :body, "Sua alegria" %>
+        <%= f.text_area :body, required: true, maxlength: 140, placeholder: "Café perfeito, pôr do sol bonito, elogio inesperado..." %>
+      </div>
+      <div style="display:flex; gap:.5rem; align-items: center;">
+        <%= f.hidden_field :lat, id: "joy_lat" %>
+        <%= f.hidden_field :lng, id: "joy_lng" %>
+        <button type="button" id="use_geo" style="padding:.4rem .6rem;">Usar minha localização</button>
+        <small id="geo_status" style="color:#666;"></small>
+      </div>
+      <div>
+        <%= f.submit "PINSAR", style: "padding:.5rem .9rem;" %>
+      </div>
+    <% end %>
+
+    <div id="joys_list" style="display:flex; flex-direction:column; gap:.5rem;">
+      <%= render @joys %>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const btn = document.getElementById('use_geo');
+    const latField = document.getElementById('joy_lat');
+    const lngField = document.getElementById('joy_lng');
+    const status = document.getElementById('geo_status');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+      status.textContent = 'Obtendo localização...';
+      if (!navigator.geolocation) {
+        status.textContent = 'Geolocalização não suportada.';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        latField.value = pos.coords.latitude.toFixed(6);
+        lngField.value = pos.coords.longitude.toFixed(6);
+        status.textContent = 'Localização definida ✔';
+      }, function(err) {
+        status.textContent = 'Não foi possível obter a localização.';
+      });
+    });
+  })();
+</script> 

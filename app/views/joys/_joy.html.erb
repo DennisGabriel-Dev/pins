@@ -1,0 +1,6 @@
+<div id="<%= dom_id(joy) %>" style="padding:.6rem .8rem; border:1px solid #eee; border-radius:10px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+  <div style="font-size:1.2rem"><%= joy.emoji %> <%= joy.body %></div>
+  <div style="color:#888; font-size:.85rem; margin-top:.25rem;">
+    <%= l(joy.created_at, format: :short) %> • <%= number_with_delimiter(joy.likes_count) %> curtidas
+  </div>
+</div> 
