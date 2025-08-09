@@ -10,5 +10,8 @@ class CreateJoys < ActiveRecord::Migration[8.0]
 
       t.timestamps
     end
+
+    add_index :joys, :created_at
+    add_index :joys, [:lat, :lng]
   end
 end

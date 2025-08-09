@@ -23,5 +23,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_09_182345) do
     t.boolean "approved", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_joys_on_created_at"
+    t.index ["lat", "lng"], name: "index_joys_on_lat_and_lng"
   end
 end
