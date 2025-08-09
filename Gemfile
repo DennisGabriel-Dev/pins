@@ -61,3 +61,6 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+# https://github.com/activerecord-hackery/ransack
+gem 'ransack'
