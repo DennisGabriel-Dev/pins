@@ -1,7 +1,10 @@
 <%= turbo_stream_from "joys" %>
 
-<div class="container" style="display:flex; gap: 1rem; align-items: flex-start;">
-  <div id="map" data-controller="map" data-map-joys-url-value="/joys.json" style="flex: 1; height: 90vh; min-height: 420px; background: #f6f7f9; border-radius: 12px; overflow: hidden;">
+<div class="container" style="display:flex; gap: 1rem; align-items: stretch; height: 100vh;">
+  <div id="map" data-controller="map" data-map-joys-url-value="/joys.json" style="flex: 1; height: 100vh; background: #f6f7f9; border-radius: 12px; overflow: hidden; position: relative;">
+    <button data-action="click->map#surprise" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      🎲 Surpresa
+    </button>
   </div>
 
   <div style="flex: 1; min-width: 360px; max-height: 100vh; overflow: auto;">
