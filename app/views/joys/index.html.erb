@@ -1,62 +1,174 @@
 <%= turbo_stream_from "joys" %>
 
-<div class="container" style="display:flex; gap: 1rem; align-items: flex-start;">
-  <div id="map" style="flex: 1; min-height: 420px; background: #f6f7f9; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:#667;">
-    <div>
-      <div style="font-size: 2rem;">🗺️</div>
-      <div style="margin-top: .25rem;">Mapa vai aqui (Leaflet na próxima etapa)</div>
+<div style="height: 100vh; display: flex; flex-direction: column;">
+  <!-- Header com título e form flutuante -->
+  <div style="background: white; padding: 1rem; border-bottom: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+      <h1 style="margin: 0; color: #333;">🗺️ Mapa das Pequenas Alegrias</h1>
+      
+      <!-- Form flutuante para criar alegria -->
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <input type="text" id="joy_emoji" placeholder="😊" maxlength="4" style="width: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+        <input type="text" id="joy_body" placeholder="Sua pequena alegria..." maxlength="140" style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+        <button type="button" id="use_geo" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">📍</button>
+        <button type="button" id="create_joy" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer;">PINSAR</button>
+      </div>
     </div>
   </div>
 
-  <div style="flex: 1; min-width: 360px;">
-    <h2 style="margin: 0 0 .5rem 0;">Pequenas Alegrias</h2>
+  <!-- Container principal: mapa + lista -->
+  <div style="flex: 1; display: flex; height: calc(100vh - 80px);">
+    <!-- Mapa principal (maior) -->
+    <div id="map" data-controller="map" data-map-joys-url-value="/joys.json" style="flex: 2; height: 100%;">
+      <button data-action="click->map#surprise" style="position: absolute; top: 20px; right: 20px; z-index: 1000; background: white; border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        🎲 Surpresa
+      </button>
+    </div>
 
-    <%= form_with model: @joy, url: joys_path, data: { turbo: true }, style: "margin-bottom: 1rem; display:grid; gap:.5rem;" do |f| %>
-      <div>
-        <%= f.label :emoji, "Emoji" %>
-        <%= f.text_field :emoji, required: true, placeholder: "😊", maxlength: 4 %>
+    <!-- Lista de localizações (lado direito) -->
+    <div style="flex: 1; min-width: 350px; max-width: 400px; background: white; border-left: 1px solid #eee; display: flex; flex-direction: column;">
+      <div style="padding: 1rem; border-bottom: 1px solid #eee;">
+        <h3 style="margin: 0; color: #333;">📍 Localizações</h3>
       </div>
-      <div>
-        <%= f.label :body, "Sua alegria" %>
-        <%= f.text_area :body, required: true, maxlength: 140, placeholder: "Café perfeito, pôr do sol bonito, elogio inesperado..." %>
+      
+      <div id="locations_list" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+        <!-- Lista será preenchida via JavaScript -->
       </div>
-      <div style="display:flex; gap:.5rem; align-items: center;">
-        <%= f.hidden_field :lat, id: "joy_lat" %>
-        <%= f.hidden_field :lng, id: "joy_lng" %>
-        <button type="button" id="use_geo" style="padding:.4rem .6rem;">Usar minha localização</button>
-        <small id="geo_status" style="color:#666;"></small>
-      </div>
-      <div>
-        <%= f.submit "PINSAR", style: "padding:.5rem .9rem;" %>
-      </div>
-    <% end %>
-
-    <div id="joys_list" style="display:flex; flex-direction:column; gap:.5rem;">
-      <%= render @joys %>
     </div>
   </div>
 </div>
 
 <script>
   (function() {
-    const btn = document.getElementById('use_geo');
-    const latField = document.getElementById('joy_lat');
-    const lngField = document.getElementById('joy_lng');
-    const status = document.getElementById('geo_status');
-    if (!btn) return;
-    btn.addEventListener('click', function() {
-      status.textContent = 'Obtendo localização...';
+    // Geolocalização
+    const geoBtn = document.getElementById('use_geo');
+    const latField = document.createElement('input');
+    const lngField = document.createElement('input');
+    latField.type = 'hidden';
+    lngField.type = 'hidden';
+    document.body.appendChild(latField);
+    document.body.appendChild(lngField);
+
+    geoBtn.addEventListener('click', function() {
+      geoBtn.textContent = '⏳';
       if (!navigator.geolocation) {
-        status.textContent = 'Geolocalização não suportada.';
+        geoBtn.textContent = '❌';
         return;
       }
       navigator.geolocation.getCurrentPosition(function(pos) {
         latField.value = pos.coords.latitude.toFixed(6);
         lngField.value = pos.coords.longitude.toFixed(6);
-        status.textContent = 'Localização definida ✔';
+        geoBtn.textContent = '✅';
       }, function(err) {
-        status.textContent = 'Não foi possível obter a localização.';
+        geoBtn.textContent = '❌';
       });
     });
+
+    // Criar alegria
+    const createBtn = document.getElementById('create_joy');
+    const emojiField = document.getElementById('joy_emoji');
+    const bodyField = document.getElementById('joy_body');
+
+    createBtn.addEventListener('click', function() {
+      if (!emojiField.value || !bodyField.value || !latField.value || !lngField.value) {
+        alert('Preencha todos os campos e use sua localização!');
+        return;
+      }
+
+      fetch('/joys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          joy: {
+            emoji: emojiField.value,
+            body: bodyField.value,
+            lat: latField.value,
+            lng: lngField.value
+          }
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.errors) {
+          alert('Erro: ' + data.errors.join(', '));
+        } else {
+          // Limpa o form
+          emojiField.value = '';
+          bodyField.value = '';
+          geoBtn.textContent = '📍';
+          latField.value = '';
+          lngField.value = '';
+          
+          // Recarrega a lista
+          loadLocations();
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao criar alegria');
+      });
+    });
+
+    // Carregar lista de localizações
+    function loadLocations() {
+      fetch('/joys.json')
+        .then(r => r.json())
+        .then(joys => {
+          const list = document.getElementById('locations_list');
+          list.innerHTML = '';
+          
+          joys.forEach(joy => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+              padding: 12px; 
+              border: 1px solid #eee; 
+              border-radius: 8px; 
+              background: white; 
+              cursor: pointer;
+              transition: all 0.2s;
+            `;
+            item.innerHTML = `
+              <div style="font-size: 16px; margin-bottom: 4px;">
+                ${joy.emoji} ${joy.body}
+              </div>
+              <div style="color: #666; font-size: 12px;">
+                📍 ${getLocationName(joy.lat, joy.lng)} • ❤️ ${joy.likes_count}
+              </div>
+            `;
+            
+            item.addEventListener('click', function() {
+              // Centraliza no mapa
+              const mapController = document.querySelector('[data-controller="map"]').map_controller;
+              if (mapController && mapController.centerOnJoy) {
+                mapController.centerOnJoy(joy.id);
+              }
+            });
+            
+            item.addEventListener('mouseenter', function() {
+              this.style.background = '#f8f9fa';
+              this.style.transform = 'translateY(-1px)';
+              this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+              this.style.background = 'white';
+              this.style.transform = 'translateY(0)';
+              this.style.boxShadow = 'none';
+            });
+            
+            list.appendChild(item);
+          });
+        });
+    }
+
+    function getLocationName(lat, lng) {
+      return `Lat: ${parseFloat(lat).toFixed(4)}, Lng: ${parseFloat(lng).toFixed(4)}`;
+    }
+
+    // Carrega lista inicial
+    loadLocations();
   })();
 </script> 
