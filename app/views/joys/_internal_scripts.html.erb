@@ -225,34 +225,40 @@
                 return;
               }
               
-              const mapController = document.querySelector('[data-controller="map"]').map_controller;
-              if (mapController && mapController.centerOnJoy) {
-                mapController.centerOnJoy(joy.id);
+              // Remove seleção anterior dos itens da lista
+              document.querySelectorAll('#locations_list > div').forEach(div => {
+                div.style.background = 'white';
+                div.style.border = '1px solid #eee';
+              });
+
+              // Destaca o item clicado
+              this.style.background = '#fff3f3';
+              this.style.border = '2px solid #e74c3c';
+              // Usa a função global
+              if (window.centerOnJoy) {
+                window.centerOnJoy(joy.id);
               }
             });
-            
             // Evento de clique no botão de like
             const likeBtn = item.querySelector('.like-btn');
             const countSpan = item.querySelector('.like-count');
-            
             likeBtn.addEventListener('click', function(e) {
               e.stopPropagation(); // Evita centralizar no mapa
               likeJoy(joy.id, likeBtn, countSpan);
             });
-            
+
             // Efeitos hover
             item.addEventListener('mouseenter', function() {
               this.style.background = '#f8f9fa';
               this.style.transform = 'translateY(-1px)';
               this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
             });
-            
+
             item.addEventListener('mouseleave', function() {
               this.style.background = 'white';
               this.style.transform = 'translateY(0)';
               this.style.boxShadow = 'none';
             });
-            
             list.appendChild(item);
           });
         });

@@ -20,6 +20,14 @@ export default class extends Controller {
 
     setTimeout(() => this.map.invalidateSize(), 100)
     this.loadJoys()
+    
+    // Expõe o controller globalmente para acesso externo
+    window.mapController = this
+    
+    // Função global para centralizar em uma alegria
+    window.centerOnJoy = (joyId) => {
+      this.centerOnJoy(joyId)
+    }
   }
 
   loadJoys(url = null) {
@@ -79,9 +87,28 @@ export default class extends Controller {
   }
 
   centerOnJoy(joyId) {
+    // Remove seleção anterior (volta todos para azul)
+    if (this.markers) {
+      this.markers.forEach(m => {
+        const icon = m.getElement()
+        if (icon) {
+          icon.style.filter = ''
+        }
+      })
+    }
+    
     const marker = this.markers.find(m => this.markerData[m._leaflet_id]?.id == joyId)
     if (marker) {
-      this.map.setView(marker.getLatLng(), 15, { animate: true })
+      // Zoom mais próximo para destacar o pin
+      this.map.setView(marker.getLatLng(), 12, { animate: true })
+      
+      // Faz o pin selecionado ficar vermelho
+      const icon = marker.getElement()
+      if (icon) {
+        icon.style.filter = 'hue-rotate(180deg) saturate(2) brightness(1.2)'
+      }
+      
+      // Abre o popup
       marker.openPopup()
     }
   }
