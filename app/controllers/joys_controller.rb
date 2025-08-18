@@ -39,6 +39,12 @@ class JoysController < ApplicationController
     end
   end
 
+  def like
+    @joy = Joy.find(params[:id])
+    @joy.increment!(:likes_count)
+    render json: { success: true, likes_count: @joy.likes_count }
+  end
+
   private
 
   def joy_params

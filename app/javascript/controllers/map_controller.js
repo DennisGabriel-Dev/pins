@@ -2,15 +2,11 @@ import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="map"
 export default class extends Controller {
-  static values = {
-    joysUrl: String
-  }
+  static values = { joysUrl: String }
 
   connect() {
-    if (!window.L) {
-      console.warn("Leaflet não carregado");
-      return;
-    }
+    if (!window.L) return;
+
     this.map = L.map(this.element, {
       scrollWheelZoom: false,
       doubleClickZoom: true,
@@ -18,22 +14,25 @@ export default class extends Controller {
       zoomControl: true
     }).setView([-23.5505, -46.6333], 12)
 
-    // Tile layer simples
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(this.map)
 
     setTimeout(() => this.map.invalidateSize(), 100)
-
-
     this.loadJoys()
   }
 
-  loadJoys() {
-    const url = this.joysUrlValue || "/joys.json"
-    fetch(url)
+  loadJoys(url = null) {
+    const fetchUrl = url || this.joysUrlValue || "/joys.json"
+    
+    fetch(fetchUrl)
       .then(r => r.json())
       .then(joys => {
+        // Remove marcadores existentes
+        if (this.markers) {
+          this.markers.forEach(marker => this.map.removeLayer(marker))
+        }
+        
         this.markers = []
         this.markerData = {}
         
@@ -42,7 +41,6 @@ export default class extends Controller {
             title: j.body
           }).addTo(this.map)
           
-          // Popup simples e funcional
           const popupContent = `
             <div style="min-width: 200px; padding: 8px;">
               <div style="font-size: 18px; margin-bottom: 8px; font-weight: bold;">
@@ -72,12 +70,14 @@ export default class extends Controller {
         if (this.markers.length > 0) {
           const group = L.featureGroup(this.markers)
           this.map.fitBounds(group.getBounds(), { padding: [20, 20], maxZoom: 14 })
+        } else {
+          // Se não há marcadores, volta para vista padrão
+          this.map.setView([-23.5505, -46.6333], 12)
         }
       })
       .catch(() => console.warn("Falha ao carregar joys.json"))
   }
 
-  // Método para centralizar em uma alegria específica
   centerOnJoy(joyId) {
     const marker = this.markers.find(m => this.markerData[m._leaflet_id]?.id == joyId)
     if (marker) {
@@ -86,7 +86,6 @@ export default class extends Controller {
     }
   }
 
-  // Método para o botão "Surpresa"
   surprise() {
     if (this.markers && this.markers.length > 0) {
       const randomMarker = this.markers[Math.floor(Math.random() * this.markers.length)]
