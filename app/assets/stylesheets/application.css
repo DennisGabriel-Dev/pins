@@ -1,9 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
 html, body {
   height: 100%;
   min-height: 100vh;
 }
 body {
   margin: 0;
+  font-family: "Roboto", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
 }
 
 #map {
@@ -18,3 +24,5 @@ body {
 .container {
   overflow: hidden;
 }
+
+

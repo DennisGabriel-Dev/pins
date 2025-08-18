@@ -1,0 +1,77 @@
+<div style="background: white; padding: 1rem; border-bottom: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+  <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+    <h1 style="margin: 0; color: #333;"><%= image_tag "logo_2.png", width: 29, height: 29 %> Pins </h1>
+
+    <!-- Form flutuante para criar alegria -->
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <select id="joy_emoji" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;">
+        <option value="☕️">☕️</option>
+        <option value="😊">😊</option>
+        <option value="🌇">🌇</option>
+        <option value="🚌">🚌</option>
+        <option value="🌊">🌊</option>
+        <option value="✨">✨</option>
+        <option value="🥥">🥥</option>
+        <option value="🎶">🎶</option>
+        <option value="🧀">🧀</option>
+        <option value="🌅">🌅</option>
+        <option value="🚗">🚗</option>
+        <option value="🌧️">🌧️</option>
+        <option value="🍖">🍖</option>
+        <option value="🌳">🌳</option>
+        <option value="📚">📚</option>
+        <option value="🌬️">🌬️</option>
+        <option value="🎺">🎺</option>
+        <option value="🍰">🍰</option>
+        <option value="👋">👋</option>
+      </select>
+      
+      <input type="text" id="joy_body" placeholder="Sua pequena alegria..." maxlength="140" style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+      <button type="button" id="use_geo" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">📍</button>
+      <button type="button" id="create_joy" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer;">PINSAR</button>
+    </div>
+  </div>
+  
+  <!-- Filtros Ransack -->
+  <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <label style="font-size: 14px; color: #666;">Emoji:</label>
+      <select id="filter_emoji" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;">
+        <option value="">Todos</option>
+        <option value="☕️">☕️ Café</option>
+        <option value="😊">😊 Sorriso</option>
+        <option value="🌇">🌇 Pôr do sol</option>
+        <option value="🚌">🚌 Transporte</option>
+        <option value="🌊">🌊 Mar</option>
+        <option value="✨">✨ Mágico</option>
+        <option value="🥥">🥥 Coco</option>
+        <option value="🎶">🎶 Música</option>
+        <option value="🧀">🧀 Comida</option>
+        <option value="🌅">🌅 Amanhecer</option>
+        <option value="🚗">🚗 Trânsito</option>
+        <option value="🌧️">🌧️ Chuva</option>
+        <option value="🍖">🍖 Churrasco</option>
+        <option value="🌳">🌳 Natureza</option>
+        <option value="📚">📚 Livro</option>
+        <option value="🌬️">🌬️ Brisa</option>
+        <option value="🎺">🎺 Frevo</option>
+        <option value="🍰">🍰 Bolo</option>
+        <option value="👋">👋 Saudação</option>
+      </select>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <label style="font-size: 14px; color: #666;">Período:</label>
+      <select id="filter_period" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;">
+        <option value="">Todos</option>
+        <option value="today">Hoje</option>
+        <option value="week">Última semana</option>
+        <option value="month">Último mês</option>
+      </select>
+    </div>
+    
+    <button type="button" id="clear_filters" style="padding: 6px 12px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px;">
+      Limpar filtros
+    </button>
+  </div>
+</div>

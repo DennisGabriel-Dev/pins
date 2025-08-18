@@ -1,0 +1,274 @@
+
+<script>
+  (function() {
+    // Geolocalização
+    const geoBtn = document.getElementById('use_geo');
+    const latField = document.createElement('input');
+    const lngField = document.createElement('input');
+    latField.type = 'hidden';
+    lngField.type = 'hidden';
+    document.body.appendChild(latField);
+    document.body.appendChild(lngField);
+
+    geoBtn.addEventListener('click', function() {
+      geoBtn.textContent = '⏳';
+      if (!navigator.geolocation) {
+        geoBtn.textContent = '❌';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        latField.value = pos.coords.latitude.toFixed(6);
+        lngField.value = pos.coords.longitude.toFixed(6);
+        geoBtn.textContent = '✅';
+      }, function(err) {
+        geoBtn.textContent = '❌';
+      });
+    });
+
+    // Criar alegria
+    const createBtn = document.getElementById('create_joy');
+    const emojiField = document.getElementById('joy_emoji');
+    const bodyField = document.getElementById('joy_body');
+
+    createBtn.addEventListener('click', function() {
+      if (!emojiField.value || !bodyField.value || !latField.value || !lngField.value) {
+        alert('Preencha todos os campos e use sua localização!');
+        return;
+      }
+
+      fetch('/joys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          joy: {
+            emoji: emojiField.value,
+            body: bodyField.value,
+            lat: latField.value,
+            lng: lngField.value
+          }
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.errors) {
+          alert('Erro: ' + data.errors.join(', '));
+        } else {
+          // Limpa o form
+          emojiField.value = '';
+          bodyField.value = '';
+          geoBtn.textContent = '📍';
+          latField.value = '';
+          lngField.value = '';
+          
+          // Recarrega a lista
+          loadLocations();
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao criar alegria');
+      });
+    });
+
+    // Sistema de likes
+    function likeJoy(joyId, likeBtn, countSpan) {
+      fetch(`/joys/${joyId}/like`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Atualiza o contador
+          const currentCount = parseInt(countSpan.textContent);
+          countSpan.textContent = currentCount + 1;
+          
+          // Muda o botão para "curtido"
+          likeBtn.textContent = '❤️';
+          likeBtn.style.color = '#e74c3c';
+          likeBtn.disabled = true;
+          likeBtn.title = 'Já curtido!';
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao curtir:', error);
+        alert('Erro ao curtir alegria');
+      });
+    }
+
+    // Filtros Ransack
+    const filterEmoji = document.getElementById('filter_emoji');
+    const filterPeriod = document.getElementById('filter_period');
+    const clearFiltersBtn = document.getElementById('clear_filters');
+
+    function buildFilterUrl() {
+      const params = new URLSearchParams();
+      
+      if (filterEmoji.value) {
+        params.append('q[emoji_eq]', filterEmoji.value);
+      }
+      
+      if (filterPeriod.value) {
+        const now = new Date();
+        let startDate;
+        
+        switch (filterPeriod.value) {
+          case 'today':
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            break;
+          case 'week':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'month':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            break;
+        }
+        
+        if (startDate) {
+          params.append('q[created_at_gteq]', startDate.toISOString());
+        }
+      }
+      
+      return params.toString();
+    }
+
+    function applyFilters() {
+      const filterUrl = buildFilterUrl();
+      const url = filterUrl ? `/joys.json?${filterUrl}` : '/joys.json';
+      
+      // Atualiza a lista
+      loadLocations(url);
+      
+      // Atualiza o mapa (se o controller suportar)
+      const mapController = document.querySelector('[data-controller="map"]').map_controller;
+      if (mapController && mapController.loadJoys) {
+        mapController.loadJoys(url);
+      }
+    }
+
+    filterEmoji.addEventListener('change', applyFilters);
+    filterPeriod.addEventListener('change', applyFilters);
+    
+    clearFiltersBtn.addEventListener('click', function() {
+      filterEmoji.value = '';
+      filterPeriod.value = '';
+      applyFilters();
+    });
+
+    // Carregar lista de localizações
+    function loadLocations(url = '/joys.json') {
+      fetch(url)
+        .then(r => r.json())
+        .then(joys => {
+          const list = document.getElementById('locations_list');
+          list.innerHTML = '';
+          
+          if (joys.length === 0) {
+            list.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma alegria encontrada com esses filtros 😔</div>';
+            return;
+          }
+          
+          joys.forEach(joy => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+              padding: 12px; 
+              border: 1px solid #eee; 
+              border-radius: 8px; 
+              background: white; 
+              cursor: pointer;
+              transition: all 0.2s;
+            `;
+            
+            // Verifica se já foi curtido (usando localStorage)
+            const isLiked = localStorage.getItem(`liked_${joy.id}`);
+            const likeButtonText = isLiked ? '❤️' : '🤍';
+            const likeButtonColor = isLiked ? '#e74c3c' : '#666';
+            const likeButtonDisabled = isLiked ? 'disabled' : '';
+            
+            item.innerHTML = `
+              <div style="font-size: 16px; margin-bottom: 4px;">
+                ${joy.emoji} ${joy.body}
+              </div>
+              <div style="color: #666; font-size: 12px; margin-bottom: 8px;">
+                📍 ${getLocationName(joy.lat, joy.lng)}
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #888; font-size: 11px;">
+                  📅 ${new Date(joy.created_at).toLocaleString('pt-BR')}
+                </span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #666; font-size: 12px;">❤️ <span class="like-count">${joy.likes_count}</span></span>
+                  <button class="like-btn" data-joy-id="${joy.id}" style="
+                    background: none; 
+                    border: none; 
+                    font-size: 16px; 
+                    cursor: pointer; 
+                    color: ${likeButtonColor};
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    transition: all 0.2s;
+                    ${likeButtonDisabled}
+                  " ${likeButtonDisabled}>${likeButtonText}</button>
+                </div>
+              </div>
+            `;
+            
+            // Evento de clique no item (centraliza no mapa)
+            item.addEventListener('click', function(e) {
+              // Não centraliza se clicou no botão de like
+              if (e.target.classList.contains('like-btn')) {
+                return;
+              }
+              
+              // Remove seleção anterior dos itens da lista
+              document.querySelectorAll('#locations_list > div').forEach(div => {
+                div.style.background = 'white';
+                div.style.border = '1px solid #eee';
+              });
+
+              // Destaca o item clicado
+              this.style.background = '#fff3f3';
+              this.style.border = '2px solid #e74c3c';
+              // Usa a função global
+              if (window.centerOnJoy) {
+                window.centerOnJoy(joy.id);
+              }
+            });
+            // Evento de clique no botão de like
+            const likeBtn = item.querySelector('.like-btn');
+            const countSpan = item.querySelector('.like-count');
+            likeBtn.addEventListener('click', function(e) {
+              e.stopPropagation(); // Evita centralizar no mapa
+              likeJoy(joy.id, likeBtn, countSpan);
+            });
+
+            // Efeitos hover
+            item.addEventListener('mouseenter', function() {
+              this.style.background = '#f8f9fa';
+              this.style.transform = 'translateY(-1px)';
+              this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            });
+
+            item.addEventListener('mouseleave', function() {
+              this.style.background = 'white';
+              this.style.transform = 'translateY(0)';
+              this.style.boxShadow = 'none';
+            });
+            list.appendChild(item);
+          });
+        });
+    }
+
+    function getLocationName(lat, lng) {
+      return `Lat: ${parseFloat(lat).toFixed(4)}, Lng: ${parseFloat(lng).toFixed(4)}`;
+    }
+
+    // Carrega lista inicial
+    loadLocations();
+  })();
+</script> 
