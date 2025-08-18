@@ -169,20 +169,13 @@
           list.innerHTML = '';
           
           if (joys.length === 0) {
-            list.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma alegria encontrada com esses filtros 😔</div>';
+            list.innerHTML = '<div class="empty-state">Nenhuma alegria encontrada com esses filtros 😔</div>';
             return;
           }
           
           joys.forEach(joy => {
             const item = document.createElement('div');
-            item.style.cssText = `
-              padding: 12px; 
-              border: 1px solid #eee; 
-              border-radius: 8px; 
-              background: white; 
-              cursor: pointer;
-              transition: all 0.2s;
-            `;
+            item.className = 'location-item';
             
             // Verifica se já foi curtido (usando localStorage)
             const isLiked = localStorage.getItem(`liked_${joy.id}`);
@@ -191,29 +184,21 @@
             const likeButtonDisabled = isLiked ? 'disabled' : '';
             
             item.innerHTML = `
-              <div style="font-size: 16px; margin-bottom: 4px;">
+              <div class="location-content">
                 ${joy.emoji} ${joy.body}
               </div>
-              <div style="color: #666; font-size: 12px; margin-bottom: 8px;">
+              <div class="location-meta">
                 📍 ${getLocationName(joy.lat, joy.lng)}
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #888; font-size: 11px;">
+              <div class="location-footer">
+                <span class="location-date">
                   📅 ${new Date(joy.created_at).toLocaleString('pt-BR')}
                 </span>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="color: #666; font-size: 12px;">❤️ <span class="like-count">${joy.likes_count}</span></span>
-                  <button class="like-btn" data-joy-id="${joy.id}" style="
-                    background: none; 
-                    border: none; 
-                    font-size: 16px; 
-                    cursor: pointer; 
-                    color: ${likeButtonColor};
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    transition: all 0.2s;
-                    ${likeButtonDisabled}
-                  " ${likeButtonDisabled}>${likeButtonText}</button>
+                <div class="like-section">
+                  <span class="like-count">❤️ ${joy.likes_count}</span>
+                  <button class="like-btn ${isLiked ? 'liked' : ''}" data-joy-id="${joy.id}" ${likeButtonDisabled}>
+                    ${likeButtonText}
+                  </button>
                 </div>
               </div>
             `;
@@ -225,15 +210,13 @@
                 return;
               }
               
-              // Remove seleção anterior dos itens da lista
+                            // Remove seleção anterior dos itens da lista
               document.querySelectorAll('#locations_list > div').forEach(div => {
-                div.style.background = 'white';
-                div.style.border = '1px solid #eee';
+                div.classList.remove('selected');
               });
-
+              
               // Destaca o item clicado
-              this.style.background = '#fff3f3';
-              this.style.border = '2px solid #e74c3c';
+              this.classList.add('selected');
               // Usa a função global
               if (window.centerOnJoy) {
                 window.centerOnJoy(joy.id);
@@ -247,18 +230,7 @@
               likeJoy(joy.id, likeBtn, countSpan);
             });
 
-            // Efeitos hover
-            item.addEventListener('mouseenter', function() {
-              this.style.background = '#f8f9fa';
-              this.style.transform = 'translateY(-1px)';
-              this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-            });
-
-            item.addEventListener('mouseleave', function() {
-              this.style.background = 'white';
-              this.style.transform = 'translateY(0)';
-              this.style.boxShadow = 'none';
-            });
+            
             list.appendChild(item);
           });
         });
