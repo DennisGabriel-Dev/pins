@@ -24,6 +24,9 @@ Um aplicativo web interativo que permite aos usuários compartilhar momentos de 
 - **Jobs**: Solid Queue
 - **WebSockets**: Solid Cable
 
+## Imagens do Projeto
+![Logo do Pins](./app/assets/images/screenshoot_app.png)
+
 ## 🚀 Instalação e Configuração
 
 ### Pré-requisitos
