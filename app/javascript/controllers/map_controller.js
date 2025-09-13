@@ -33,7 +33,7 @@ export default class extends Controller {
   loadJoys(url = null) {
     const fetchUrl = url || this.joysUrlValue || "/joys.json"
     
-    fetch(fetchUrl)
+    return fetch(fetchUrl)
       .then(r => r.json())
       .then(joys => {
         // Remove marcadores existentes
@@ -82,11 +82,19 @@ export default class extends Controller {
           // Se não há marcadores, volta para vista padrão
           this.map.setView([-23.5505, -46.6333], 12)
         }
+        
+        return joys; // Retorna os joys para permitir encadeamento
       })
-      .catch(() => console.warn("Falha ao carregar joys.json"))
+      .catch(() => {
+        console.warn("Falha ao carregar joys.json");
+        return []; // Retorna array vazio em caso de erro
+      })
   }
 
   centerOnJoy(joyId) {
+    console.log('centerOnJoy chamado com joyId:', joyId);
+    console.log('Tipo do joyId:', typeof joyId);
+    
     // Remove seleção anterior (volta todos para azul)
     if (this.markers) {
       this.markers.forEach(m => {
@@ -97,7 +105,12 @@ export default class extends Controller {
       })
     }
     
-    const marker = this.markers.find(m => this.markerData[m._leaflet_id]?.id == joyId)
+    // Procura o marker pelo ID do joy (não pelo _leaflet_id)
+    const marker = this.markers.find(m => {
+      const joyData = this.markerData[m._leaflet_id];
+      return joyData && joyData.id == joyId;
+    });
+    
     if (marker) {
       // Zoom mais próximo para destacar o pin
       this.map.setView(marker.getLatLng(), 12, { animate: true })
@@ -110,7 +123,99 @@ export default class extends Controller {
       
       // Abre o popup
       marker.openPopup()
+    } else {
+      console.log('Marker não encontrado para joyId:', joyId);
+      console.log('Markers disponíveis:', this.markers.length);
+      console.log('MarkerData:', this.markerData);
+      
+      // Debug: mostra todos os IDs disponíveis
+      const availableIds = Object.values(this.markerData).map(joy => joy.id);
+      console.log('IDs disponíveis:', availableIds);
+      
+      // Tenta encontrar por lat/lng se tiver os dados do joy
+      if (window.lastCreatedJoy && window.lastCreatedJoy.id == joyId) {
+        console.log('Tentando encontrar por coordenadas:', window.lastCreatedJoy.lat, window.lastCreatedJoy.lng);
+        const markerByCoords = this.markers.find(m => {
+          const latLng = m.getLatLng();
+          return Math.abs(latLng.lat - parseFloat(window.lastCreatedJoy.lat)) < 0.001 &&
+                 Math.abs(latLng.lng - parseFloat(window.lastCreatedJoy.lng)) < 0.001;
+        });
+        
+        if (markerByCoords) {
+          console.log('Encontrado por coordenadas!');
+          this.map.setView(markerByCoords.getLatLng(), 12, { animate: true });
+          const icon = markerByCoords.getElement();
+          if (icon) {
+            icon.style.filter = 'hue-rotate(180deg) saturate(2) brightness(1.2)';
+          }
+          markerByCoords.openPopup();
+        }
+      }
     }
+  }
+
+  addJoyToMap(joy) {
+    console.log('addJoyToMap chamado com joy:', joy.id);
+    
+    // Verifica se o joy já existe
+    const existingMarker = this.markers.find(m => {
+      const joyData = this.markerData[m._leaflet_id];
+      return joyData && joyData.id == joy.id;
+    });
+    
+    if (existingMarker) {
+      console.log('Joy já existe no mapa:', joy.id);
+      return existingMarker;
+    }
+    
+    const marker = L.marker([parseFloat(joy.lat), parseFloat(joy.lng)], {
+      title: joy.body
+    }).addTo(this.map)
+    
+    const popupContent = `
+      <div style="min-width: 200px; padding: 8px;">
+        <div style="font-size: 18px; margin-bottom: 8px; font-weight: bold;">
+          ${joy.emoji} ${this.escapeHtml(joy.body)}
+        </div>
+        <div style="color: #666; font-size: 12px; margin-bottom: 4px;">
+          📍 ${this._getLocationName(joy.lat, joy.lng)}
+        </div>
+        <div style="color: #888; font-size: 11px;">
+          📅 ${new Date(joy.created_at).toLocaleString('pt-BR')} • ❤️ ${joy.likes_count} curtidas
+        </div>
+      </div>
+    `
+    
+    marker.bindPopup(popupContent)
+    
+    // Evento de clique explícito
+    marker.on('click', function() {
+      this.openPopup()
+    })
+    
+    // Adiciona ao array de markers
+    this.markers.push(marker)
+    
+    // Adiciona ao markerData com o _leaflet_id
+    this.markerData[marker._leaflet_id] = joy
+    
+    console.log('Marker adicionado. Total de markers:', this.markers.length);
+    console.log('MarkerData atualizado. Keys:', Object.keys(this.markerData));
+    console.log('Último marker _leaflet_id:', marker._leaflet_id);
+    console.log('Último marker joy ID:', joy.id);
+    
+    // Faz o mapa pulsar
+    this.pulseMap()
+    
+    return marker
+  }
+
+  pulseMap() {
+    const mapElement = this.map.getContainer()
+    mapElement.classList.add('map-pulse')
+    setTimeout(() => {
+      mapElement.classList.remove('map-pulse')
+    }, 1000)
   }
 
   surprise() {
