@@ -23,9 +23,15 @@ class JoysController < ApplicationController
     @joy = Joy.new(joy_params.merge(approved: true))
 
     if @joy.save
+      # Broadcast para Turbo Stream
+      Turbo::StreamsChannel.broadcast_to("joys", {
+        action: "new_joy",
+        joy: @joy.attributes.slice("id", "body", "emoji", "lat", "lng", "likes_count", "created_at")
+      })
+
       respond_to do |format|
         format.html { redirect_to root_path, notice: "Alegria criada!" }
-        format.json { render json: @joy, status: :created }
+        format.json { render json: @joy.slice(:id, :body, :emoji, :lat, :lng, :likes_count, :created_at), status: :created }
       end
     else
       respond_to do |format|

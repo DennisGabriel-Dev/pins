@@ -1,5 +1,132 @@
 
 <script>
+  // Turbo Stream para receber novos joys
+  document.addEventListener('turbo:before-stream-render', function(event) {
+    console.log('Turbo Stream recebido');
+    const stream = event.detail.newStream;
+    const data = stream.getAttribute('data');
+    console.log('Data do stream:', data);
+    
+    if (data) {
+      try {
+        const parsedData = JSON.parse(data);
+        console.log('Parsed data:', parsedData);
+        if (parsedData.action === 'new_joy') {
+          // Salva o último joy criado para referência
+          window.lastCreatedJoy = parsedData.joy;
+          
+          // Adiciona o novo joy à lista
+          addJoyToList(parsedData.joy);
+          
+          // Adiciona o novo pin diretamente ao mapa
+          const mapController = document.querySelector('[data-controller="map"]').map_controller;
+          console.log('Map controller encontrado:', !!mapController);
+          console.log('addJoyToMap disponível:', !!(mapController && mapController.addJoyToMap));
+          
+          if (mapController && mapController.addJoyToMap) {
+            console.log('Adicionando novo joy ao mapa:', parsedData.joy.id);
+            const marker = mapController.addJoyToMap(parsedData.joy);
+            console.log('Marker criado:', !!marker);
+            
+            // Centraliza no novo pin
+            setTimeout(() => {
+              if (window.centerOnJoy) {
+                console.log('Centralizando no novo joy:', parsedData.joy.id);
+                window.centerOnJoy(parsedData.joy.id);
+                
+                // Limpa a referência após centralizar
+                setTimeout(() => {
+                  delete window.lastCreatedJoy;
+                }, 2000);
+              }
+            }, 100);
+          } else {
+            console.error('Map controller ou addJoyToMap não disponível');
+          }
+        }
+      } catch (e) {
+        console.log('Erro ao processar stream:', e);
+      }
+    }
+  });
+
+  function addJoyToList(joy) {
+    const list = document.getElementById('locations_list');
+    const item = document.createElement('div');
+    item.className = 'location-item';
+    
+    // Verifica se já foi curtido
+    const isLiked = localStorage.getItem(`liked_${joy.id}`);
+    const likeButtonText = isLiked ? '❤️' : '🤍';
+    
+    item.innerHTML = `
+      <div class="location-content">
+        ${joy.emoji} ${joy.body}
+      </div>
+      <div class="location-meta">
+        📍 ${getLocationName(joy.lat, joy.lng)}
+      </div>
+      <div class="location-footer">
+        <span class="location-date">
+          📅 ${new Date(joy.created_at).toLocaleString('pt-BR')}
+        </span>
+        <div class="like-section">
+          <span class="like-count">❤️ ${joy.likes_count}</span>
+          <button class="like-btn ${isLiked ? 'liked' : ''}" data-joy-id="${joy.id}" ${isLiked ? 'disabled' : ''}>
+            ${likeButtonText}
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Adiciona eventos
+    setupJoyItemEvents(item, joy);
+    
+    // Insere no topo da lista com animação
+    if (list.firstChild) {
+      list.insertBefore(item, list.firstChild);
+    } else {
+      list.appendChild(item);
+    }
+    
+    // Remove estado vazio se existir
+    const emptyState = list.querySelector('.empty-state');
+    if (emptyState) {
+      emptyState.remove();
+    }
+  }
+
+  function setupJoyItemEvents(item, joy) {
+    // Evento de clique no item
+    item.addEventListener('click', function(e) {
+      if (e.target.classList.contains('like-btn')) {
+        return;
+      }
+      
+      // Remove seleção anterior
+      document.querySelectorAll('#locations_list > div').forEach(div => {
+        div.classList.remove('selected');
+      });
+      
+      // Destaca o item clicado
+      this.classList.add('selected');
+      
+      // Centraliza no mapa
+      if (window.centerOnJoy) {
+        window.centerOnJoy(joy.id);
+      }
+    });
+    
+    // Evento de clique no botão de like
+    const likeBtn = item.querySelector('.like-btn');
+    const countSpan = item.querySelector('.like-count');
+    
+    likeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      likeJoy(joy.id, likeBtn, countSpan);
+    });
+  }
+
   (function() {
     // Geolocalização
     const geoBtn = document.getElementById('use_geo');
@@ -40,6 +167,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
         },
         body: JSON.stringify({
@@ -84,15 +212,17 @@
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          // Atualiza o contador
-          const currentCount = parseInt(countSpan.textContent);
-          countSpan.textContent = currentCount + 1;
+          // Atualiza o contador com o valor retornado do servidor
+          countSpan.textContent = data.likes_count;
           
           // Muda o botão para "curtido"
           likeBtn.textContent = '❤️';
-          likeBtn.style.color = '#e74c3c';
+          likeBtn.classList.add('liked');
           likeBtn.disabled = true;
           likeBtn.title = 'Já curtido!';
+          
+          // Salva no localStorage
+          localStorage.setItem(`liked_${joyId}`, 'true');
         }
       })
       .catch(error => {
@@ -169,20 +299,13 @@
           list.innerHTML = '';
           
           if (joys.length === 0) {
-            list.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Nenhuma alegria encontrada com esses filtros 😔</div>';
+            list.innerHTML = '<div class="empty-state">Nenhuma alegria encontrada com esses filtros 😔</div>';
             return;
           }
           
           joys.forEach(joy => {
             const item = document.createElement('div');
-            item.style.cssText = `
-              padding: 12px; 
-              border: 1px solid #eee; 
-              border-radius: 8px; 
-              background: white; 
-              cursor: pointer;
-              transition: all 0.2s;
-            `;
+            item.className = 'location-item';
             
             // Verifica se já foi curtido (usando localStorage)
             const isLiked = localStorage.getItem(`liked_${joy.id}`);
@@ -191,29 +314,21 @@
             const likeButtonDisabled = isLiked ? 'disabled' : '';
             
             item.innerHTML = `
-              <div style="font-size: 16px; margin-bottom: 4px;">
+              <div class="location-content">
                 ${joy.emoji} ${joy.body}
               </div>
-              <div style="color: #666; font-size: 12px; margin-bottom: 8px;">
+              <div class="location-meta">
                 📍 ${getLocationName(joy.lat, joy.lng)}
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #888; font-size: 11px;">
+              <div class="location-footer">
+                <span class="location-date">
                   📅 ${new Date(joy.created_at).toLocaleString('pt-BR')}
                 </span>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="color: #666; font-size: 12px;">❤️ <span class="like-count">${joy.likes_count}</span></span>
-                  <button class="like-btn" data-joy-id="${joy.id}" style="
-                    background: none; 
-                    border: none; 
-                    font-size: 16px; 
-                    cursor: pointer; 
-                    color: ${likeButtonColor};
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    transition: all 0.2s;
-                    ${likeButtonDisabled}
-                  " ${likeButtonDisabled}>${likeButtonText}</button>
+                <div class="like-section">
+                  <span class="like-count">❤️ ${joy.likes_count}</span>
+                  <button class="like-btn ${isLiked ? 'liked' : ''}" data-joy-id="${joy.id}" ${likeButtonDisabled}>
+                    ${likeButtonText}
+                  </button>
                 </div>
               </div>
             `;
@@ -225,15 +340,13 @@
                 return;
               }
               
-              // Remove seleção anterior dos itens da lista
+                            // Remove seleção anterior dos itens da lista
               document.querySelectorAll('#locations_list > div').forEach(div => {
-                div.style.background = 'white';
-                div.style.border = '1px solid #eee';
+                div.classList.remove('selected');
               });
-
+              
               // Destaca o item clicado
-              this.style.background = '#fff3f3';
-              this.style.border = '2px solid #e74c3c';
+              this.classList.add('selected');
               // Usa a função global
               if (window.centerOnJoy) {
                 window.centerOnJoy(joy.id);
@@ -247,18 +360,7 @@
               likeJoy(joy.id, likeBtn, countSpan);
             });
 
-            // Efeitos hover
-            item.addEventListener('mouseenter', function() {
-              this.style.background = '#f8f9fa';
-              this.style.transform = 'translateY(-1px)';
-              this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-            });
-
-            item.addEventListener('mouseleave', function() {
-              this.style.background = 'white';
-              this.style.transform = 'translateY(0)';
-              this.style.boxShadow = 'none';
-            });
+            
             list.appendChild(item);
           });
         });
