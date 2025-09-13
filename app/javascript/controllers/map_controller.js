@@ -155,7 +155,15 @@ export default class extends Controller {
   }
 
   addJoyToMap(joy) {
-    console.log('addJoyToMap chamado com joy:', joy.id);
+    console.log('addJoyToMap chamado com joy:', joy);
+    
+    // Inicializa arrays se não existirem
+    if (!this.markers) {
+      this.markers = [];
+    }
+    if (!this.markerData) {
+      this.markerData = {};
+    }
     
     // Verifica se o joy já existe
     const existingMarker = this.markers.find(m => {

@@ -19,13 +19,9 @@
           addJoyToList(parsedData.joy);
           
           // Adiciona o novo pin diretamente ao mapa
-          const mapController = document.querySelector('[data-controller="map"]').map_controller;
-          console.log('Map controller encontrado:', !!mapController);
-          console.log('addJoyToMap disponível:', !!(mapController && mapController.addJoyToMap));
-          
-          if (mapController && mapController.addJoyToMap) {
+          if (window.mapController && window.mapController.addJoyToMap) {
             console.log('Adicionando novo joy ao mapa:', parsedData.joy.id);
-            const marker = mapController.addJoyToMap(parsedData.joy);
+            const marker = window.mapController.addJoyToMap(parsedData.joy);
             console.log('Marker criado:', !!marker);
             
             // Centraliza no novo pin
@@ -41,7 +37,18 @@
               }
             }, 100);
           } else {
-            console.error('Map controller ou addJoyToMap não disponível');
+            console.error('Map controller não disponível, tentando recarregar mapa...');
+            // Fallback: recarrega todos os joys do mapa
+            setTimeout(() => {
+              if (window.mapController && window.mapController.loadJoys) {
+                window.mapController.loadJoys().then(() => {
+                  // Após recarregar, centraliza no novo joy
+                  if (window.centerOnJoy) {
+                    window.centerOnJoy(parsedData.joy.id);
+                  }
+                });
+              }
+            }, 500);
           }
         }
       } catch (e) {
@@ -193,6 +200,18 @@
           
           // Recarrega a lista
           loadLocations();
+          
+          // Força atualização do mapa
+          setTimeout(() => {
+            if (window.mapController && window.mapController.loadJoys) {
+              window.mapController.loadJoys().then(() => {
+                // Centraliza no novo joy após recarregar
+                if (window.centerOnJoy && data.id) {
+                  window.centerOnJoy(data.id);
+                }
+              });
+            }
+          }, 200);
         }
       })
       .catch(error => {
@@ -275,9 +294,8 @@
       loadLocations(url);
       
       // Atualiza o mapa (se o controller suportar)
-      const mapController = document.querySelector('[data-controller="map"]').map_controller;
-      if (mapController && mapController.loadJoys) {
-        mapController.loadJoys(url);
+      if (window.mapController && window.mapController.loadJoys) {
+        window.mapController.loadJoys(url);
       }
     }
 
