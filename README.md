@@ -40,7 +40,7 @@ Um aplicativo web interativo que permite aos usuários compartilhar momentos de 
 
 1. **Clone o repositório**
    ```bash
-   git clone <url-do-repositorio>
+   git clone git@github.com:DennisGabriel-Dev/pins.git
    cd pins
    ```
 
